@@ -21,6 +21,8 @@ package org.wso2.carbon.identity.organization.discovery.service.internal;
 import org.wso2.carbon.identity.organization.config.service.AttributeBasedOrganizationDiscoveryHandlerRegistry;
 import org.wso2.carbon.identity.organization.config.service.OrganizationConfigManager;
 import org.wso2.carbon.identity.organization.discovery.service.AttributeBasedOrganizationDiscoveryHandler;
+import org.wso2.carbon.identity.organization.discovery.service.OrganizationDiscoveryManager;
+import org.wso2.carbon.identity.organization.management.application.OrgApplicationManager;
 import org.wso2.carbon.identity.organization.management.service.OrganizationManager;
 
 import java.util.HashMap;
@@ -35,6 +37,8 @@ public class OrganizationDiscoveryServiceHolder {
     private static final OrganizationDiscoveryServiceHolder instance = new OrganizationDiscoveryServiceHolder();
     private OrganizationManager organizationManager = null;
     private OrganizationConfigManager organizationConfigManager = null;
+    private OrgApplicationManager orgApplicationManager;
+    private OrganizationDiscoveryManager organizationDiscoveryManager;
     private Map<String, AttributeBasedOrganizationDiscoveryHandler> attributeBasedOrganizationDiscoveryHandlerMap;
 
     public static OrganizationDiscoveryServiceHolder getInstance() {
@@ -97,5 +101,25 @@ public class OrganizationDiscoveryServiceHolder {
                                                                          attributeBasedOrganizationDiscoveryHandler) {
 
         attributeBasedOrganizationDiscoveryHandlerMap.remove(attributeBasedOrganizationDiscoveryHandler.getType());
+    }
+
+    public void setOrgApplicationManager(OrgApplicationManager orgApplicationManager) {
+
+        this.orgApplicationManager = orgApplicationManager;
+    }
+
+    public OrgApplicationManager getOrgApplicationManager() {
+
+        return orgApplicationManager;
+    }
+
+    public OrganizationDiscoveryManager getOrganizationDiscoveryManager() {
+
+        return organizationDiscoveryManager;
+    }
+
+    public void setOrganizationDiscoveryManager(OrganizationDiscoveryManager organizationDiscoveryManager) {
+
+        this.organizationDiscoveryManager = organizationDiscoveryManager;
     }
 }
