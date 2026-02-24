@@ -36,11 +36,33 @@ public interface GovernancePolicyService {
 
     OrgGovernancePolicy getOrgGovernancePolicy(String policyId) throws GovernancePolicyMgtException;
 
+    /**
+     * Get an org-level policy by its natural key (governingOrgId + resourceType + capability).
+     * Maps to GET /governance-policies/{resourceType}/{capability}.
+     */
+    OrgGovernancePolicy getOrgGovernancePolicyByKey(String governingOrgId, String resourceType, String capability)
+            throws GovernancePolicyMgtException;
+
     List<OrgGovernancePolicy> getOrgGovernancePolicies(String governingOrgId) throws GovernancePolicyMgtException;
 
     OrgGovernancePolicy updateOrgGovernancePolicy(OrgGovernancePolicy policy) throws GovernancePolicyMgtException;
 
+    /**
+     * Update an org-level policy identified by its natural key.
+     * Only policyType, allowOverride, and selectedOrgs in {@code updates} are applied.
+     * Maps to PUT /governance-policies/{resourceType}/{capability}.
+     */
+    OrgGovernancePolicy updateOrgGovernancePolicyByKey(String governingOrgId, String resourceType, String capability,
+            OrgGovernancePolicy updates) throws GovernancePolicyMgtException;
+
     void deleteOrgGovernancePolicy(String policyId) throws GovernancePolicyMgtException;
+
+    /**
+     * Delete an org-level policy by its natural key.
+     * Maps to DELETE /governance-policies/{resourceType}/{capability}.
+     */
+    void deleteOrgGovernancePolicyByKey(String governingOrgId, String resourceType, String capability)
+            throws GovernancePolicyMgtException;
 
     // -------------------------------------------------------------------------
     // Resource-level policies
@@ -51,11 +73,34 @@ public interface GovernancePolicyService {
 
     ResourceGovernancePolicy getResourceGovernancePolicy(String policyId) throws GovernancePolicyMgtException;
 
+    /**
+     * Get a resource-level policy by its natural key.
+     * Maps to GET /resource-governance-policies/{resourceType}/{resourceId}/{capability}.
+     */
+    ResourceGovernancePolicy getResourceGovernancePolicyByKey(String governingOrgId, String resourceType,
+            String resourceId, String capability) throws GovernancePolicyMgtException;
+
     List<ResourceGovernancePolicy> getResourceGovernancePolicies(String governingOrgId)
             throws GovernancePolicyMgtException;
 
     ResourceGovernancePolicy updateResourceGovernancePolicy(ResourceGovernancePolicy policy)
             throws GovernancePolicyMgtException;
 
+    /**
+     * Update a resource-level policy identified by its natural key.
+     * Only policyType, allowOverride, and selectedOrgs in {@code updates} are applied.
+     * Maps to PUT /resource-governance-policies/{resourceType}/{resourceId}/{capability}.
+     */
+    ResourceGovernancePolicy updateResourceGovernancePolicyByKey(String governingOrgId, String resourceType,
+            String resourceId, String capability, ResourceGovernancePolicy updates)
+            throws GovernancePolicyMgtException;
+
     void deleteResourceGovernancePolicy(String policyId) throws GovernancePolicyMgtException;
+
+    /**
+     * Delete a resource-level policy by its natural key.
+     * Maps to DELETE /resource-governance-policies/{resourceType}/{resourceId}/{capability}.
+     */
+    void deleteResourceGovernancePolicyByKey(String governingOrgId, String resourceType, String resourceId,
+            String capability) throws GovernancePolicyMgtException;
 }

@@ -39,6 +39,7 @@ import static org.wso2.carbon.identity.organization.management.capability.govern
 import static org.wso2.carbon.identity.organization.management.capability.governance.constant.GovernancePolicyConstants.ErrorMessage.ERROR_CODE_GET_RESOURCE_POLICY_FAILED;
 import static org.wso2.carbon.identity.organization.management.capability.governance.constant.GovernancePolicyConstants.ErrorMessage.ERROR_CODE_HIERARCHY_TRAVERSAL_FAILED;
 import static org.wso2.carbon.identity.organization.management.capability.governance.constant.GovernancePolicyConstants.ErrorMessage.ERROR_CODE_OVERRIDE_NOT_PERMITTED;
+import static org.wso2.carbon.identity.organization.management.capability.governance.constant.GovernancePolicyConstants.ErrorMessage.ERROR_CODE_POLICY_ALREADY_EXISTS;
 import static org.wso2.carbon.identity.organization.management.capability.governance.constant.GovernancePolicyConstants.ErrorMessage.ERROR_CODE_POLICY_NOT_FOUND;
 
 /**
@@ -54,6 +55,12 @@ public class GovernancePolicyServiceImpl implements GovernancePolicyService {
             throws GovernancePolicyMgtException {
 
         validateOrgGovernancePolicy(policy);
+        if (GOVERNANCE_POLICY_DAO.findOrgGovernancePolicy(
+                policy.getGoverningOrgId(), policy.getCapability(), policy.getResourceType()).isPresent()) {
+            throw new GovernancePolicyMgtClientException(ERROR_CODE_POLICY_ALREADY_EXISTS.getCode(),
+                    ERROR_CODE_POLICY_ALREADY_EXISTS.getMessage(),
+                    ERROR_CODE_POLICY_ALREADY_EXISTS.getDescription());
+        }
         String policyId = GOVERNANCE_POLICY_DAO.addOrgGovernancePolicy(policy);
         return GOVERNANCE_POLICY_DAO.getOrgGovernancePolicyById(policyId)
                 .orElseThrow(() -> new GovernancePolicyMgtServerException(
@@ -66,6 +73,17 @@ public class GovernancePolicyServiceImpl implements GovernancePolicyService {
     public OrgGovernancePolicy getOrgGovernancePolicy(String policyId) throws GovernancePolicyMgtException {
 
         return GOVERNANCE_POLICY_DAO.getOrgGovernancePolicyById(policyId)
+                .orElseThrow(() -> new GovernancePolicyMgtClientException(
+                        ERROR_CODE_POLICY_NOT_FOUND.getCode(),
+                        ERROR_CODE_POLICY_NOT_FOUND.getMessage(),
+                        ERROR_CODE_POLICY_NOT_FOUND.getDescription()));
+    }
+
+    @Override
+    public OrgGovernancePolicy getOrgGovernancePolicyByKey(String governingOrgId, String resourceType,
+            String capability) throws GovernancePolicyMgtException {
+
+        return GOVERNANCE_POLICY_DAO.findOrgGovernancePolicy(governingOrgId, capability, resourceType)
                 .orElseThrow(() -> new GovernancePolicyMgtClientException(
                         ERROR_CODE_POLICY_NOT_FOUND.getCode(),
                         ERROR_CODE_POLICY_NOT_FOUND.getMessage(),
@@ -92,15 +110,42 @@ public class GovernancePolicyServiceImpl implements GovernancePolicyService {
     }
 
     @Override
+    public OrgGovernancePolicy updateOrgGovernancePolicyByKey(String governingOrgId, String resourceType,
+            String capability, OrgGovernancePolicy updates) throws GovernancePolicyMgtException {
+
+        OrgGovernancePolicy existing = getOrgGovernancePolicyByKey(governingOrgId, resourceType, capability);
+        updates.setId(existing.getId());
+        updates.setGoverningOrgId(governingOrgId);
+        updates.setResourceType(resourceType);
+        updates.setCapability(capability);
+        return updateOrgGovernancePolicy(updates);
+    }
+
+    @Override
     public void deleteOrgGovernancePolicy(String policyId) throws GovernancePolicyMgtException {
 
         GOVERNANCE_POLICY_DAO.deleteOrgGovernancePolicyById(policyId);
     }
 
     @Override
+    public void deleteOrgGovernancePolicyByKey(String governingOrgId, String resourceType, String capability)
+            throws GovernancePolicyMgtException {
+
+        OrgGovernancePolicy existing = getOrgGovernancePolicyByKey(governingOrgId, resourceType, capability);
+        GOVERNANCE_POLICY_DAO.deleteOrgGovernancePolicyById(existing.getId());
+    }
+
+    @Override
     public ResourceGovernancePolicy addResourceGovernancePolicy(ResourceGovernancePolicy policy)
             throws GovernancePolicyMgtException {
 
+        if (GOVERNANCE_POLICY_DAO.findResourceGovernancePolicy(
+                policy.getGoverningOrgId(), policy.getCapability(),
+                policy.getResourceType(), policy.getResourceId()).isPresent()) {
+            throw new GovernancePolicyMgtClientException(ERROR_CODE_POLICY_ALREADY_EXISTS.getCode(),
+                    ERROR_CODE_POLICY_ALREADY_EXISTS.getMessage(),
+                    ERROR_CODE_POLICY_ALREADY_EXISTS.getDescription());
+        }
         String policyId = GOVERNANCE_POLICY_DAO.addResourceGovernancePolicy(policy);
         return GOVERNANCE_POLICY_DAO.getResourceGovernancePolicyById(policyId)
                 .orElseThrow(() -> new GovernancePolicyMgtServerException(
@@ -114,6 +159,17 @@ public class GovernancePolicyServiceImpl implements GovernancePolicyService {
             throws GovernancePolicyMgtException {
 
         return GOVERNANCE_POLICY_DAO.getResourceGovernancePolicyById(policyId)
+                .orElseThrow(() -> new GovernancePolicyMgtClientException(
+                        ERROR_CODE_POLICY_NOT_FOUND.getCode(),
+                        ERROR_CODE_POLICY_NOT_FOUND.getMessage(),
+                        ERROR_CODE_POLICY_NOT_FOUND.getDescription()));
+    }
+
+    @Override
+    public ResourceGovernancePolicy getResourceGovernancePolicyByKey(String governingOrgId, String resourceType,
+            String resourceId, String capability) throws GovernancePolicyMgtException {
+
+        return GOVERNANCE_POLICY_DAO.findResourceGovernancePolicy(governingOrgId, capability, resourceType, resourceId)
                 .orElseThrow(() -> new GovernancePolicyMgtClientException(
                         ERROR_CODE_POLICY_NOT_FOUND.getCode(),
                         ERROR_CODE_POLICY_NOT_FOUND.getMessage(),
@@ -140,9 +196,34 @@ public class GovernancePolicyServiceImpl implements GovernancePolicyService {
     }
 
     @Override
+    public ResourceGovernancePolicy updateResourceGovernancePolicyByKey(String governingOrgId, String resourceType,
+            String resourceId, String capability, ResourceGovernancePolicy updates)
+            throws GovernancePolicyMgtException {
+
+        ResourceGovernancePolicy existing =
+                getResourceGovernancePolicyByKey(governingOrgId, resourceType, resourceId, capability);
+        updates.setId(existing.getId());
+        updates.setGoverningOrgId(governingOrgId);
+        updates.setResourceType(resourceType);
+        updates.setResourceId(resourceId);
+        updates.setCapability(capability);
+        updates.setResourceOwnerOrgId(existing.getResourceOwnerOrgId());
+        return updateResourceGovernancePolicy(updates);
+    }
+
+    @Override
     public void deleteResourceGovernancePolicy(String policyId) throws GovernancePolicyMgtException {
 
         GOVERNANCE_POLICY_DAO.deleteResourceGovernancePolicyById(policyId);
+    }
+
+    @Override
+    public void deleteResourceGovernancePolicyByKey(String governingOrgId, String resourceType, String resourceId,
+            String capability) throws GovernancePolicyMgtException {
+
+        ResourceGovernancePolicy existing =
+                getResourceGovernancePolicyByKey(governingOrgId, resourceType, resourceId, capability);
+        GOVERNANCE_POLICY_DAO.deleteResourceGovernancePolicyById(existing.getId());
     }
 
     // -------------------------------------------------------------------------

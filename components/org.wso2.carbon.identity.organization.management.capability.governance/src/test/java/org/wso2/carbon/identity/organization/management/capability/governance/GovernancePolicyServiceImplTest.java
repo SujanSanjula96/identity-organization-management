@@ -324,6 +324,183 @@ public class GovernancePolicyServiceImplTest {
     }
 
     // -------------------------------------------------------------------------
+    // Natural key — org-level
+    // -------------------------------------------------------------------------
+
+    @Test
+    public void testGetOrgGovernancePolicyByKey() throws Exception {
+
+        when(organizationManager.isPrimaryOrganization(SUPER_ORG_ID)).thenReturn(true);
+
+        OrgGovernancePolicy policy = buildOrgPolicy(SUPER_ORG_ID, PolicyType.ALL, true);
+        policy.setCapability("KEY_LOOKUP_CAPABILITY");
+        service.addOrgGovernancePolicy(policy);
+
+        OrgGovernancePolicy fetched = service.getOrgGovernancePolicyByKey(
+                SUPER_ORG_ID, RESOURCE_TYPE_APP, "KEY_LOOKUP_CAPABILITY");
+        Assert.assertEquals(fetched.getCapability(), "KEY_LOOKUP_CAPABILITY");
+        Assert.assertEquals(fetched.getGoverningOrgId(), SUPER_ORG_ID);
+    }
+
+    @Test
+    public void testGetOrgGovernancePolicyByKeyNotFound() {
+
+        try {
+            service.getOrgGovernancePolicyByKey(SUPER_ORG_ID, RESOURCE_TYPE_APP, "NONEXISTENT_CAPABILITY");
+            Assert.fail("Expected 404.");
+        } catch (GovernancePolicyMgtClientException e) {
+            Assert.assertTrue(e.getErrorCode().contains("60001"));
+        } catch (Exception e) {
+            Assert.fail("Unexpected exception: " + e.getMessage());
+        }
+    }
+
+    @Test(dependsOnMethods = "testGetOrgGovernancePolicyByKey")
+    public void testUpdateOrgGovernancePolicyByKey() throws Exception {
+
+        OrgGovernancePolicy updates = new OrgGovernancePolicy();
+        updates.setPolicyType(PolicyType.IMMEDIATE);
+        updates.setAllowOverride(false);
+
+        OrgGovernancePolicy updated = service.updateOrgGovernancePolicyByKey(
+                SUPER_ORG_ID, RESOURCE_TYPE_APP, "KEY_LOOKUP_CAPABILITY", updates);
+        Assert.assertEquals(updated.getPolicyType(), PolicyType.IMMEDIATE);
+        Assert.assertFalse(updated.isAllowOverride());
+        // Immutable fields preserved.
+        Assert.assertEquals(updated.getGoverningOrgId(), SUPER_ORG_ID);
+        Assert.assertEquals(updated.getCapability(), "KEY_LOOKUP_CAPABILITY");
+    }
+
+    @Test(dependsOnMethods = "testUpdateOrgGovernancePolicyByKey")
+    public void testDeleteOrgGovernancePolicyByKey() throws Exception {
+
+        service.deleteOrgGovernancePolicyByKey(SUPER_ORG_ID, RESOURCE_TYPE_APP, "KEY_LOOKUP_CAPABILITY");
+
+        try {
+            service.getOrgGovernancePolicyByKey(SUPER_ORG_ID, RESOURCE_TYPE_APP, "KEY_LOOKUP_CAPABILITY");
+            Assert.fail("Expected 404 after delete.");
+        } catch (GovernancePolicyMgtClientException e) {
+            Assert.assertTrue(e.getErrorCode().contains("60001"));
+        }
+    }
+
+    @Test
+    public void testDeleteOrgGovernancePolicyByKeyNotFound() {
+
+        try {
+            service.deleteOrgGovernancePolicyByKey(SUPER_ORG_ID, RESOURCE_TYPE_APP, "NONEXISTENT");
+            Assert.fail("Expected 404.");
+        } catch (GovernancePolicyMgtClientException e) {
+            Assert.assertTrue(e.getErrorCode().contains("60001"));
+        } catch (Exception e) {
+            Assert.fail("Unexpected exception: " + e.getMessage());
+        }
+    }
+
+    // -------------------------------------------------------------------------
+    // Natural key — resource-level
+    // -------------------------------------------------------------------------
+
+    @Test
+    public void testGetResourceGovernancePolicyByKey() throws Exception {
+
+        ResourceGovernancePolicy policy = buildResourcePolicy(SUPER_ORG_ID, PolicyType.ALL, true);
+        policy.setCapability("RES_KEY_LOOKUP_CAPABILITY");
+        policy.setResourceId("res-key-app-id");
+        service.addResourceGovernancePolicy(policy);
+
+        ResourceGovernancePolicy fetched = service.getResourceGovernancePolicyByKey(
+                SUPER_ORG_ID, RESOURCE_TYPE_APP, "res-key-app-id", "RES_KEY_LOOKUP_CAPABILITY");
+        Assert.assertEquals(fetched.getCapability(), "RES_KEY_LOOKUP_CAPABILITY");
+        Assert.assertEquals(fetched.getResourceId(), "res-key-app-id");
+    }
+
+    @Test
+    public void testGetResourceGovernancePolicyByKeyNotFound() {
+
+        try {
+            service.getResourceGovernancePolicyByKey(SUPER_ORG_ID, RESOURCE_TYPE_APP, "nonexistent-res", "CAP");
+            Assert.fail("Expected 404.");
+        } catch (GovernancePolicyMgtClientException e) {
+            Assert.assertTrue(e.getErrorCode().contains("60001"));
+        } catch (Exception e) {
+            Assert.fail("Unexpected exception: " + e.getMessage());
+        }
+    }
+
+    @Test(dependsOnMethods = "testGetResourceGovernancePolicyByKey")
+    public void testUpdateResourceGovernancePolicyByKey() throws Exception {
+
+        ResourceGovernancePolicy updates = new ResourceGovernancePolicy();
+        updates.setPolicyType(PolicyType.DENY);
+        updates.setAllowOverride(false);
+
+        ResourceGovernancePolicy updated = service.updateResourceGovernancePolicyByKey(
+                SUPER_ORG_ID, RESOURCE_TYPE_APP, "res-key-app-id", "RES_KEY_LOOKUP_CAPABILITY", updates);
+        Assert.assertEquals(updated.getPolicyType(), PolicyType.DENY);
+        // Immutable fields preserved.
+        Assert.assertEquals(updated.getResourceId(), "res-key-app-id");
+        Assert.assertEquals(updated.getGoverningOrgId(), SUPER_ORG_ID);
+    }
+
+    @Test(dependsOnMethods = "testUpdateResourceGovernancePolicyByKey")
+    public void testDeleteResourceGovernancePolicyByKey() throws Exception {
+
+        service.deleteResourceGovernancePolicyByKey(
+                SUPER_ORG_ID, RESOURCE_TYPE_APP, "res-key-app-id", "RES_KEY_LOOKUP_CAPABILITY");
+
+        try {
+            service.getResourceGovernancePolicyByKey(
+                    SUPER_ORG_ID, RESOURCE_TYPE_APP, "res-key-app-id", "RES_KEY_LOOKUP_CAPABILITY");
+            Assert.fail("Expected 404 after delete.");
+        } catch (GovernancePolicyMgtClientException e) {
+            Assert.assertTrue(e.getErrorCode().contains("60001"));
+        }
+    }
+
+    // -------------------------------------------------------------------------
+    // 409 Conflict — duplicate policy
+    // -------------------------------------------------------------------------
+
+    @Test
+    public void testAddOrgPolicyConflict() throws Exception {
+
+        when(organizationManager.isPrimaryOrganization(SUPER_ORG_ID)).thenReturn(true);
+
+        OrgGovernancePolicy policy = buildOrgPolicy(SUPER_ORG_ID, PolicyType.ALL, true);
+        policy.setCapability("CONFLICT_CAP");
+        service.addOrgGovernancePolicy(policy);
+
+        try {
+            OrgGovernancePolicy duplicate = buildOrgPolicy(SUPER_ORG_ID, PolicyType.IMMEDIATE, false);
+            duplicate.setCapability("CONFLICT_CAP");
+            service.addOrgGovernancePolicy(duplicate);
+            Assert.fail("Expected 409 for duplicate org policy.");
+        } catch (GovernancePolicyMgtClientException e) {
+            Assert.assertTrue(e.getErrorCode().contains("60002"));
+        }
+    }
+
+    @Test
+    public void testAddResourcePolicyConflict() throws Exception {
+
+        ResourceGovernancePolicy policy = buildResourcePolicy(SUPER_ORG_ID, PolicyType.ALL, true);
+        policy.setCapability("RES_CONFLICT_CAP");
+        policy.setResourceId("conflict-app-id");
+        service.addResourceGovernancePolicy(policy);
+
+        try {
+            ResourceGovernancePolicy duplicate = buildResourcePolicy(SUPER_ORG_ID, PolicyType.DENY, false);
+            duplicate.setCapability("RES_CONFLICT_CAP");
+            duplicate.setResourceId("conflict-app-id");
+            service.addResourceGovernancePolicy(duplicate);
+            Assert.fail("Expected 409 for duplicate resource policy.");
+        } catch (GovernancePolicyMgtClientException e) {
+            Assert.assertTrue(e.getErrorCode().contains("60002"));
+        }
+    }
+
+    // -------------------------------------------------------------------------
     // Helpers
     // -------------------------------------------------------------------------
 
